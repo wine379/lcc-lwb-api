@@ -1,0 +1,391 @@
+type Query {
+   national_leaders_count: Int!
+    @cypher(
+      statement: """
+      MATCH (p:Person) RETURN count(p)
+      """
+    )
+
+    national_male_leaders_count: Int!
+    @cypher(
+      statement: """
+      MATCH (p:Person) WHERE p.sex = 'Male' RETURN count(p)
+      """
+    )
+
+    national_female_leaders_count: Int!
+    @cypher(
+      statement: """
+      MATCH (p:Person) WHERE p.sex = 'Female' RETURN count(p)
+      """
+    )
+
+    organizationCount: Int!
+    @cypher(
+      statement: """
+       MATCH (o:Organization) RETURN COUNT(o)
+      """
+    )
+
+    districts_orgs_info: DistrictOrganization!
+    @cypher(
+      statement: """
+      MATCH (d:District)<-[:IS_IN_DISTRICT]-(t:TraditionalAuthority)
+      MATCH (t) <- [:IS_IN_TA]-(o:Organization)
+        WITH d
+        MATCH (n: District) WITH d, n
+        RETURN { districts_with_orgs: COUNT(DISTINCT d), totalDistricts: COUNT(DISTINCT n), districts_without_orgs:  COUNT(DISTINCT n) - COUNT(DISTINCT d)}
+      """
+    )
+
+    districts_with_youth_organization: [District!]!
+    @cypher(
+      statement: """
+       MATCH (d:District)<-[:IS_IN_DISTRICT]-(t:TraditionalAuthority)
+      MATCH (t) <- [:IS_IN_TA]-(o:Organization)
+         RETURN DISTINCT d
+      """
+    )
+
+    traditional_authorities_with_youth_organizations: [TraditionalAuthority!]!
+    @cypher(
+      statement: """
+       MATCH (t:TraditionalAuthority) <- [:IS_IN_TA]-(o:Organization)
+      RETURN DISTINCT t
+      """
+    )
+
+    organizations_with_srh_activities: [Organization]
+    @cypher(
+      statement: """
+       MATCH (o:Organization)<-[r:IS_INVOLVED_IN_ACTIVITY]-(a:Activity)  MATCH (a)-[:IS_IN_PROGRAMMATIC_AREA]->(p:ProgrammaticArea) WHERE p.programmatic_area_name = 'Sexual reproductive health' RETURN DISTINCT o
+      """
+    )
+
+    organizations_with_ecr_activities: [Organization]
+    @cypher(
+      statement: """
+       MATCH (o:Organization)<-[r:IS_INVOLVED_IN_ACTIVITY]-(a:Activity)  MATCH (a)-[:IS_IN_PROGRAMMATIC_AREA]->(p:ProgrammaticArea) WHERE p.programmatic_area_name = 'Environment and climate change' RETURN DISTINCT o
+      """
+    )
+
+    organizations_with_ypee_activities: [Organization]
+    @cypher(
+      statement: """
+       MATCH (o:Organization)<-[r:IS_INVOLVED_IN_ACTIVITY]-(a:Activity)  MATCH (a)-[:IS_IN_PROGRAMMATIC_AREA]->(p:ProgrammaticArea) WHERE p.programmatic_area_name = 'Youth participation and economic empowerment' RETURN DISTINCT o
+      """
+    )
+
+    organizations_with_other_activities: [Organization]
+    @cypher(
+      statement: """
+       MATCH (o:Organization)<-[r:IS_INVOLVED_IN_ACTIVITY]-(a:Activity)  MATCH (a)-[:IS_IN_PROGRAMMATIC_AREA]->(p:ProgrammaticArea) WHERE p.programmatic_area_name = 'Other' RETURN DISTINCT o
+       """
+    )
+
+
+}
+
+type DistrictOrganization {
+  districts_with_orgs: Int!
+  districts_without_orgs: Int!
+  totalDistricts: Int!
+}
+
+type District {
+   _id: Long!
+   district_code: String!
+   district_id: String!
+   district_name: String!
+   region_name: String!
+   is_in_region: [Region] @relation(name: "IS_IN_REGION", direction: OUT)
+   traditionalauthoritys: [TraditionalAuthority] @relation(name: "IS_IN_DISTRICT", direction: IN)
+   organizations: [Organization] @relation(name: "ORG_IS_IN_TA", direction: IN)
+
+   number_of_all_leaders: Int
+    @cypher(
+      statement: """
+      MATCH (t:TraditionalAuthority)-[:IS_IN_DISTRICT]->(this)
+      MATCH (t)<-[:IS_IN_TA]-(o:Organization)
+        MATCH (o)<-[:IS_RESPONSIBLE_FOR_ORG]-(p:Person)
+        RETURN count(p)
+      """
+    )
+
+    number_of_female_leaders: Int
+    @cypher(
+      statement: """
+      MATCH (t:TraditionalAuthority)-[:IS_IN_DISTRICT]->(this)
+      MATCH (t)<-[:IS_IN_TA]-(o:Organization)
+        MATCH (o)<-[:IS_RESPONSIBLE_FOR_ORG]-(p:Person)
+         WHERE p.sex = 'Female'
+         RETURN count(p)
+      """
+    )
+
+    number_of_male_leaders: Int
+    @cypher(
+      statement: """
+      MATCH (t:TraditionalAuthority)-[:IS_IN_DISTRICT]->(this)
+      MATCH (t)<-[:IS_IN_TA]-(o:Organization)
+        MATCH (o)<-[:IS_RESPONSIBLE_FOR_ORG]-(p:Person)
+        WHERE p.sex = 'Male'
+        RETURN count(p)
+      """
+    )
+
+    number_of_youth_organizations: Int
+    @cypher(
+      statement: """
+      MATCH (t:TraditionalAuthority)-[:IS_IN_DISTRICT]->(this)
+      MATCH (t)<-[r:IS_IN_TA]-(o:Organization)
+      RETURN count(o)
+      """
+    )
+}
+
+type TraditionalAuthority {
+   _id: Long!
+   district_id: String!
+   t_a_code: String!
+   t_a_name: String!
+   is_in_district: [District] @relation(name: "IS_IN_DISTRICT", direction: OUT)
+   organizations: [Organization] @relation(name: "IS_IN_TA", direction: IN)
+
+   number_of_all_leaders: Int
+    @cypher(
+      statement: """
+      MATCH (this)<-[:IS_IN_TA]-(o:Organization)
+         MATCH (o)<-[:IS_RESPONSIBLE_FOR_ORG]-(p:Person)
+         RETURN count(p)
+      """
+    )
+
+  number_of_female_leaders: Int
+    @cypher(
+      statement: """
+      MATCH (this)<-[:IS_IN_TA]-(o:Organization)
+         MATCH (o)<-[:IS_RESPONSIBLE_FOR_ORG]-(p:Person)
+         WHERE p.sex = 'Female'
+         RETURN count(p)
+      """
+    )
+
+  number_of_male_leaders: Int
+    @cypher(
+      statement: """
+      MATCH (this)<-[:IS_IN_TA]-(o:Organization)
+         MATCH (o)<-[:IS_RESPONSIBLE_FOR_ORG]-(p:Person)
+         WHERE p.sex = 'Male'
+         RETURN count(p)
+      """
+    )
+
+  number_of_youth_organizations: Int
+    @cypher(
+      statement: """
+      MATCH (this)<-[r:IS_IN_TA]-(o:Organization)
+      RETURN count(o)
+      """
+    )
+}
+
+type Organization {
+   _id: Long!
+   _uuid: String!
+   capacity_building_needs: [String]
+   challenges: [String]
+   emails: [String]
+   income_generation_activities: [String]
+   ind_number: String
+   location: Point!
+   org_emails: [String]!
+   org_name: String!
+   org_phones: [String]!
+   org_postal_address: String
+   org_registration_date: Date
+   org_registration_number: String
+   org_village_name: String
+   phones: [String]
+   positions: [String]
+   is_in_ta: [TraditionalAuthority] @relation(name: "IS_IN_TA", direction: OUT)
+   org_is_in_ta: [District] @relation(name: "ORG_IS_IN_TA", direction: OUT)
+   was_interviewed_on: [Interview] @relation(name: "WAS_INTERVIEWED_ON", direction: OUT)
+   WAS_INTERVIEWED_ON_rel: [WAS_INTERVIEWED_ON]
+   persons: [Person] @relation(name: "IS_RESPONSIBLE_FOR_ORG", direction: IN)
+   locations: [Location] @relation(name: "IS_LOCATION_OF", direction: IN)
+   activitys: [Activity] @relation(name: "IS_INVOLVED_IN_ACTIVITY", direction: IN)
+   events: [Event] @relation(name: "PARTICIPATED_IN_EVENT", direction: IN)
+
+   trainings_attended: [Event]
+    @cypher(
+      statement: """
+       MATCH (this)<-[:PARTICIPATED_IN_EVENT]-(e:Event) WHERE e.event_type='TRAINING' RETURN e
+      """
+    )
+
+    meetings_attended: [Event]
+    @cypher(
+      statement: """
+       MATCH (this)<-[:PARTICIPATED_IN_EVENT]-(e:Event) WHERE e.event_type='MEETING' RETURN e
+      """
+    )
+    number_of_trainings_attended: Int
+    @cypher(
+      statement: """
+       MATCH (this)<-[:PARTICIPATED_IN_EVENT]-(e:Event) WHERE e.event_type='TRAINING' RETURN COUNT(e)
+      """
+    )
+
+    number_of_meetings_attended: Int
+    @cypher(
+      statement: """
+       MATCH (this)<-[:PARTICIPATED_IN_EVENT]-(e:Event) WHERE e.event_type='MEETING' RETURN COUNT(e)
+      """
+    )
+
+    number_of_all_leaders: Int
+    @cypher(
+      statement: """
+      MATCH (this)<-[:IS_RESPONSIBLE_FOR_ORG]-(p:Person)         RETURN count(p)
+      """
+    )
+
+    number_of_female_leaders: Int
+    @cypher(
+      statement: """
+      MATCH (this)<-[:IS_RESPONSIBLE_FOR_ORG]-(p:Person)          WHERE p.sex = 'Female'
+       RETURN count(p)
+      """
+    )
+
+    number_of_male_leaders: Int
+    @cypher(
+      statement: """
+      MATCH (this)<-[:IS_RESPONSIBLE_FOR_ORG]-(p:Person)         WHERE p.sex = 'Male'
+      RETURN count(p)
+      """
+    )
+
+    programmatic_areas: [ProgrammaticArea!]!
+    @cypher(
+      statement: """
+      MATCH(this)<-[:IS_INVOLVED_IN_ACTIVITY]-(a:Activity) WITH a MATCH (a)-[IS_IN_PROGRAMMATIC_AREA]->(p:ProgrammaticArea) RETURN DISTINCT p
+      """
+    )
+
+    traditional_authority_name: String
+    @cypher(
+      statement: """
+      MATCH (this)-[:IS_IN_TA]->(t:TraditionalAuthority) RETURN t.t_a_name
+      """
+    )
+
+  district_name: String!
+    @cypher(
+      statement: """
+      MATCH (this)-[:IS_IN_TA]->(t:TraditionalAuthority) WITH t MATCH (t)-[:IS_IN_DISTRICT]->(d:District) RETURN d.district_name
+      """
+    )
+  region_name: String!
+    @cypher(
+      statement: """
+      MATCH (this)-[:IS_IN_TA]->(t:TraditionalAuthority) WITH t MATCH (t)-[:IS_IN_DISTRICT]->(d:District) WITH d MATCH (d)-[:IS_IN_REGION]->(r:Region) RETURN r.region_name
+      """
+    )
+
+}
+
+type Person {
+   _id: Long!
+   category: String!
+   ind_number: String!
+   name: String!
+   sex: String!
+   uuid: String!
+   is_responsible_for_org: [Organization] @relation(name: "IS_RESPONSIBLE_FOR_ORG", direction: OUT)
+   IS_RESPONSIBLE_FOR_ORG_rel: [IS_RESPONSIBLE_FOR_ORG]
+}
+
+type Interview {
+   _id: Long!
+   date: Date!
+   device_id: String!
+   geo_location: String!
+   name_of_enumerator: String!
+   organizations: [Organization] @relation(name: "WAS_INTERVIEWED_ON", direction: IN)
+}
+
+type Location {
+   _id: Long!
+   altitude: String!
+   latitude: String!
+   longitude: String!
+   org_name: String!
+   precision: String!
+   is_location_of: [Organization] @relation(name: "IS_LOCATION_OF", direction: OUT)
+   IS_LOCATION_OF_rel: [IS_LOCATION_OF]
+}
+
+type Activity {
+   _id: Long!
+   name: String!
+   programmatic_area_id: String!
+   uuid: String!
+   is_involved_in_activity: [Organization] @relation(name: "IS_INVOLVED_IN_ACTIVITY", direction: OUT)
+   is_in_programmatic_area: [ProgrammaticArea] @relation(name: "IS_IN_PROGRAMMATIC_AREA", direction: OUT)
+}
+
+type ProgrammaticArea {
+   _id: Long!
+   programmatic_area_description: String!
+   programmatic_area_name: String!
+   activitys: [Activity] @relation(name: "IS_IN_PROGRAMMATIC_AREA", direction: IN)
+}
+
+type Event {
+   _id: Long!
+   event_name: String!
+   event_type: String!
+   is_nycom_referred: String!
+   is_nycom_sponsored: String!
+   participated_in_event: [Organization] @relation(name: "PARTICIPATED_IN_EVENT", direction: OUT)
+}
+
+type Region {
+   _id: Long!
+   region_code: String!
+   region_id: String!
+   region_name: String!
+   districts: [District] @relation(name: "IS_IN_REGION", direction: IN)
+}
+
+
+
+
+
+type IS_RESPONSIBLE_FOR_ORG @relation(name: "IS_RESPONSIBLE_FOR_ORG") {
+  from: Person!
+  to: Organization!
+  category: String!
+  other_positions: [String]
+  positions: [String]
+  sex_of_leader: String!
+}
+
+type IS_LOCATION_OF @relation(name: "IS_LOCATION_OF") {
+  from: Location!
+  to: Organization!
+  date_created: Date!
+}
+
+
+
+
+type WAS_INTERVIEWED_ON @relation(name: "WAS_INTERVIEWED_ON") {
+  from: Organization!
+  to: Interview!
+  date_of_interview: Date!
+}
+
+

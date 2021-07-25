@@ -1,0 +1,407 @@
+type Mutation {
+  createBeneficiaryHousehold(
+    areaName: String!,
+    averageMonthlyIncome: String!,
+    blockName: String!,
+    headAgeCategory: String!,
+    homeOwnershipStatus: String!,
+    householdAdminNotes: String!,
+    householdCode: String!,
+    householdLatrine: String!,
+    householdName: String!,
+    householdPoor: String!,
+    householdVulnerable: String!,
+    mainLivelihood: String!,
+    payFullForOSS: String!,
+    phoneNumber: String!,
+    plotNumber: String!,
+    structureLocationZone: String!,
+    wardName: String!
+    ): Household
+  @cypher(
+      statement: """
+      MERGE (h: Household {
+        household_code: $householdCode,
+        household_block_name: $blockName,
+        household_name: $householdName,
+        household_plot_number: $plotNumber,
+        is_vulnerable_household: $householdVulnerable,
+        is_poor_household: $householdPoor,
+        will_household_pay_full_for_oss: $payFullForOSS,
+        date_created: datetime()
+      }) WITH h
+
+      MATCH(a:Area {
+        area_name: $areaName
+      }) CREATE (a)-[:IS_AREA_FOR_HOUSEHOLD{since: datetime()}]->(h) WITH h
+
+      MATCH(a:AverageMonthlyIncomeRange {
+        average_monthly_income_range: $averageMonthlyIncome
+      }) CREATE (a)-[:IS_AVERAGE_MONTHLY_INCOME_RANGE_FOR_HOUSEHOLD{since: datetime()}]->(h) WITH h 
+
+      MATCH(x:HouseholdEnrollmentStatus {
+        household_enrollment_status_name: 'Pending'
+      }) CREATE (x)-[:IS_HOUSEHOLD_ENROLLMENT_STATUS_FOR_HOUSEHOLD{since: datetime()}]->(h) WITH h 
+
+      MATCH(x:HouseholdHeadAgeCategory{
+        household_head_age_category_name: $headAgeCategory
+      }) CREATE (x)-[:IS_HOUSEHOLD_HEAD_AGE_CATEGORY_FOR_HOUSEHOLD{since: datetime()}]->(h) WITH h 
+
+      MATCH(x:HouseholdHomeOwnershipStatus{
+        household_home_ownership_status_name: $homeOwnershipStatus
+      }) CREATE (x)-[:IS_HOUSEHOLD_HOME_OWNERSHIP_STATUS_FOR_HOUSEHOLD{since: datetime()}]->(h) WITH h 
+
+      MATCH(x:HouseholdStructureLocationZone{
+        household_structure_location_zone_name: $structureLocationZone
+      }) CREATE (x)-[:IS_HOUSEHOLD_STRUCTURE_LOCATION_ZONE_FOR_HOUSEHOLD{since: datetime()}]->(h) WITH h
+
+      MATCH(l: Latrine{
+        latrine_name: $householdLatrine
+      }) CREATE (l)-[:IS_LATRINE_FOR_HOUSEHOLD{since: datetime()}]->(h) WITH h
+
+      MATCH(m: MainSourceOfLivelihood{
+        main_source_of_livelihood_name: $mainLivelihood
+      }) CREATE (m)-[:IS_MAIN_SOURCE_OF_LIVELIHOOD_FOR_HOUSEHOLD{since: datetime()}]->(h) WITH h
+
+      MATCH(w:Ward {
+        ward_name: $wardName
+      }) CREATE (w)-[:IS_WARD_FOR_HOUSEHOLD{since: datetime()}]->(h) WITH h
+
+      MERGE(p: Phone {
+        phone: $phoneNumber,
+        date_created: datetime()
+        }) WITH h, p CREATE (p)-[:IS_PHONE_FOR_HOUSEHOLD{since: datetime()}]->(h)
+
+      """
+    )
+
+
+  assignPhoneToHousehold(householdCode: String!, phone: String!): Household
+    @cypher(
+      statement: "MATCH (h:Household {household_code: $householdCode}), (p:Phone {phone: $phone}) CREATE (p)-[:IS_PHONE_FOR_HOUSEHOLD]->(h)" 
+    )
+
+   assignLatrineToHousehold(householdCode: String!, latrineCode: String!): Household
+    @cypher(
+      statement: "MATCH (h:Household {household_code: $householdCode}), (l:Latrine {latrine_code: $latrineCode}) CREATE (l)-[:IS_LATRINE_FOR_HOUSEHOLD]->(h)" 
+    )
+
+    assignAreaToHousehold(householdCode: String!, areaCode: String!): Household
+    @cypher(
+      statement: "MATCH (h:Household {household_code: $householdCode}), (a:Area {area_code: $areaCode}) CREATE (a)-[:IS_AREA_FOR_HOUSEHOLD]->(h)" 
+    )
+
+    assignWardToHousehold(householdCode: String!, wardCode: String!): Household
+    @cypher(
+      statement: "MATCH (h:Household {household_code: $householdCode}), (w:Ward {ward_code: $wardCode}) CREATE (w)-[:IS_WARD_FOR_HOUSEHOLD]->(h)" 
+    )
+
+    assignHouseholdHeadAgeCategoryToHousehold(householdCode: String!, householdHeadAgeCategoryCode: String!): Household
+    @cypher(
+      statement: "MATCH (h:Household {household_code: $householdCode}), (x:HouseholdHeadAgeCategory {household_head_age_category_code: $householdCode}) CREATE (x)-[:IS_HOUSEHOLD_HEAD_AGE_CATEGORY_FOR_HOUSEHOLD]->(h)" 
+    )
+
+    assignMainSourceOfLivelihoodToHousehold(householdCode: String!, mainSourceOfLivelihoodCode: String!): Household
+    @cypher(
+      statement: "MATCH (h:Household {household_code: $householdCode}), (m:MainSourceOfLivelihood {main_source_of_livelihood_code: $mainSourceOfLivelihoodCode}) CREATE (m)-[:IS_MAIN_SOURCE_OF_LIVELIHOOD_FOR_HOUSEHOLD]->(h)" 
+    )
+
+    assignAverageMonthlyIncomeRangeToHousehold(householdCode: String!, averageMonthlyIncomeRangeCode: String!): Household
+    @cypher(
+      statement: "MATCH (h:Household {household_code: $householdCode}), (a:AverageMonthlyIncomeRangeCode {average_monthly_income_range_code: $averageMonthlyIncomeRangeCode}) CREATE (a)-[:IS_AVERAGE_MONTHLY_INCOME_RANGE_FOR_HOUSEHOLD]->(h)" 
+    )
+
+    assignHouseholdHomeOwnershipStatusToHousehold(householdCode: String!, householdHomeOwnershipStatusCode: String!): Household
+    @cypher(
+      statement: "MATCH (h:Household {household_code: $householdCode}), (x:HouseholdHomeOwnershipStatus {household_home_ownership_status_code: $householdHomeOwnershipStatusCode}) CREATE (x)-[:IS_HOUSEHOLD_HOME_OWNERSHIP_STATUS_FOR_HOUSEHOLD]->(h)" 
+    )
+
+    assignHouseholdStructureLocationZoneToHousehold(householdCode: String!, householdStructureLocationZone: String!): Household
+    @cypher(
+      statement: "MATCH (h:Household {household_code: $householdCode}), (x:HouseholdStructureLocationZone {household_structure_location_zone_code: $householdStructureLocationZone}) CREATE (x)-[:IS_HOUSEHOLD_STRUCTURE_LOCATION_ZONE_FOR_HOUSEHOLD]->(h)" 
+    )
+}
+
+type AverageMonthlyIncomeRange {
+  _id: Long!
+  average_monthly_income_range: String!
+  average_monthly_income_range_code: String!
+  average_monthly_income_range_description: String!
+  is_average_monthly_income_range_for_household: [Household]
+    @relation(
+      name: "IS_AVERAGE_MONTHLY_INCOME_RANGE_FOR_HOUSEHOLD"
+      direction: OUT
+    )
+}
+
+type ContactCategory {
+  _id: Long!
+  contact_category_code: String!
+  contact_category_description: String!
+  contact_category_name: String!
+}
+
+type Contractor {
+  _id: Long!
+  area_code: String!
+  contractor_code: String!
+  contractor_name: String!
+  contractor_postal_address: String!
+  is_contractor_for_contract: [Contract]
+    @relation(name: "IS_CONTRACTOR_FOR_CONTRACT", direction: OUT)
+  areas: [Area] @relation(name: "IS_AREA_FOR_CONTRACTOR", direction: IN)
+  emails: [Email] @relation(name: "IS_EMAIL_FOR_CONTRACTOR", direction: IN)
+  locations: [Location]
+    @relation(name: "IS_LOCATION_FOR_CONTRACTOR", direction: IN)
+  users: [User] @relation(name: "IS_USER_FOR_CONTRACTOR", direction: IN)
+  phones: [Phone] @relation(name: "IS_PHONE_FOR_CONTRACTOR", direction: IN)
+}
+
+type Contract {
+  _id: Long!
+  contract_code: String!
+  contract_estimated_implementation_period_in_days: String!
+  date_created: String!
+  date_last_modified: String!
+  is_contract_for_household: [Household]
+    @relation(name: "IS_CONTRACT_FOR_HOUSEHOLD", direction: OUT)
+  products: [Product] @relation(name: "IS_PRODUCT_FOR_CONTRACT", direction: IN)
+  contractors: [Contractor]
+    @relation(name: "IS_CONTRACTOR_FOR_CONTRACT", direction: IN)
+  contractstatuss: [ContractStatus]
+    @relation(name: "IS_CONTRACT_STATUS_FOR_CONTRACT", direction: IN)
+}
+
+type ContractStatus {
+  _id: Long!
+  contract_status_code: String!
+  contract_status_description: String!
+  contract_status_name: String!
+  is_contract_status_for_contract: [Contract]
+    @relation(name: "IS_CONTRACT_STATUS_FOR_CONTRACT", direction: OUT)
+}
+
+type ContributionCategory {
+  _id: Long!
+  contribution_category_code: String!
+  contribution_category_description: String!
+  contribution_category_name: String!
+}
+
+type Email {
+  _id: Long!
+  email: String!
+  email_category_code: String!
+  is_email_for_contractor: [Contractor]
+    @relation(name: "IS_EMAIL_FOR_CONTRACTOR", direction: OUT)
+  is_email_for_household: [Household]
+    @relation(name: "IS_EMAIL_FOR_HOUSEHOLD", direction: OUT)
+  is_email_for_organization: [Organization]
+    @relation(name: "IS_EMAIL_FOR_ORGANIZATION", direction: OUT)
+  is_email_for_user: [User] @relation(name: "IS_EMAIL_FOR_USER", direction: OUT)
+}
+
+type HouseholdEnrollmentStatus {
+  _id: Long!
+  household_enrollment_status_code: String!
+  household_enrollment_status_description: String!
+  household_enrollment_status_name: String!
+  is_household_enrollment_status_for_household: [Household]
+    @relation(
+      name: "IS_HOUSEHOLD_ENROLLMENT_STATUS_FOR_HOUSEHOLD"
+      direction: OUT
+    )
+}
+
+type HouseholdHeadAgeCategory {
+  _id: Long!
+  household_head_age_category_code: String!
+  household_head_age_category_description: String!
+  household_head_age_category_name: String!
+  is_household_head_age_category_for_household: [Household]
+    @relation(
+      name: "IS_HOUSEHOLD_HEAD_AGE_CATEGORY_FOR_HOUSEHOLD"
+      direction: OUT
+    )
+}
+
+type HouseholdHomeOwnershipStatus {
+  _id: Long!
+  household_home_ownership_status_code: String!
+  household_home_ownership_status_description: String!
+  household_home_ownership_status_name: String!
+}
+
+type Household {
+  _id: Long!
+  household_admin_notes: String!
+  household_block_name: String!
+  household_code: String!
+  household_name: String!
+  household_plot_number: String!
+  is_poor_household: String!
+  is_vulnerable_household: String!
+  will_household_pay_full_for_oss: String!
+  contracts: [Contract]
+    @relation(name: "IS_CONTRACT_FOR_HOUSEHOLD", direction: IN)
+  householdenrollmentstatuss: [HouseholdEnrollmentStatus]
+    @relation(
+      name: "IS_HOUSEHOLD_ENROLLMENT_STATUS_FOR_HOUSEHOLD"
+      direction: IN
+    )
+  emails: [Email] @relation(name: "IS_EMAIL_FOR_HOUSEHOLD", direction: IN)
+  householdheadagecategorys: [HouseholdHeadAgeCategory]
+    @relation(
+      name: "IS_HOUSEHOLD_HEAD_AGE_CATEGORY_FOR_HOUSEHOLD"
+      direction: IN
+    )
+  mainsourceoflivelihoods: [MainSourceOfLivelihood]
+    @relation(name: "IS_MAIN_SOURCE_OF_LIVELIHOOD_FOR_HOUSEHOLD", direction: IN)
+  averagemonthlyincomeranges: [AverageMonthlyIncomeRange]
+    @relation(
+      name: "IS_AVERAGE_MONTHLY_INCOME_RANGE_FOR_HOUSEHOLD"
+      direction: IN
+    )
+  householdstructurelocationzones: [HouseholdStructureLocationZone]
+    @relation(
+      name: "IS_HOUSEHOLD_STRUCTURE_LOCATION_ZONE_FOR_HOUSEHOLD"
+      direction: IN
+    )
+  latrines: [Latrine] @relation(name: "IS_LATRINE_FOR_HOUSEHOLD", direction: IN)
+  locations: [Location]
+    @relation(name: "IS_LOCATION_FOR_HOUSEHOLD", direction: IN)
+  wards: [Ward] @relation(name: "IS_WARD_FOR_HOUSEHOLD", direction: IN)
+  areas: [Area] @relation(name: "IS_AREA_FOR_HOUSEHOLD", direction: IN)
+  users: [User] @relation(name: "IS_USER_FOR_HOUSEHOLD", direction: IN)
+  phones: [Phone] @relation(name: "IS_PHONE_FOR_HOUSEHOLD", direction: IN)
+}
+
+type HouseholdStructureLocationZone {
+  _id: Long!
+  household_structure_location_zone_code: String!
+  household_structure_location_zone_description: String!
+  household_structure_location_zone_name: String!
+  is_household_structure_location_zone_for_household: [Household]
+    @relation(
+      name: "IS_HOUSEHOLD_STRUCTURE_LOCATION_ZONE_FOR_HOUSEHOLD"
+      direction: OUT
+    )
+}
+
+type Latrine {
+  _id: Long!
+  latrine_code: String!
+  latrine_description: String!
+  latrine_name: String!
+  is_latrine_for_household: [Household]
+    @relation(name: "IS_LATRINE_FOR_HOUSEHOLD", direction: OUT)
+}
+
+type Location {
+  _id: Long!
+  latitude: String!
+  location_code: String!
+  location_title: String!
+  longitude: String!
+  is_location_for_contractor: [Contractor]
+    @relation(name: "IS_LOCATION_FOR_CONTRACTOR", direction: OUT)
+  is_location_for_household: [Household]
+    @relation(name: "IS_LOCATION_FOR_HOUSEHOLD", direction: OUT)
+  is_location_for_organization: [Organization]
+    @relation(name: "IS_LOCATION_FOR_ORGANIZATION", direction: OUT)
+}
+
+type MainSourceOfLivelihood {
+  _id: Long!
+  main_source_of_livelihood_code: String!
+  main_source_of_livelihood_description: String!
+  main_source_of_livelihood_name: String!
+  is_main_source_of_livelihood_for_household: [Household]
+    @relation(
+      name: "IS_MAIN_SOURCE_OF_LIVELIHOOD_FOR_HOUSEHOLD"
+      direction: OUT
+    )
+}
+
+type Organization {
+  _id: Long!
+  organization_code: String!
+  organization_mission_statement: String!
+  organization_name: String!
+  emails: [Email] @relation(name: "IS_EMAIL_FOR_ORGANIZATION", direction: IN)
+  locations: [Location]
+    @relation(name: "IS_LOCATION_FOR_ORGANIZATION", direction: IN)
+  users: [User] @relation(name: "IS_USER_FOR_ORGANIZATION", direction: IN)
+}
+
+type Phone {
+  _id: Long!
+  phone: String!
+  phone_category_code: String!
+  is_phone_for_contractor: [Contractor]
+    @relation(name: "IS_PHONE_FOR_CONTRACTOR", direction: OUT)
+  is_phone_for_household: [Household]
+    @relation(name: "IS_PHONE_FOR_HOUSEHOLD", direction: OUT)
+  is_phone_for_user: [User] @relation(name: "IS_PHONE_FOR_USER", direction: OUT)
+}
+
+type Product {
+  _id: Long!
+  product_code: String!
+  product_cost: String!
+  product_description: String!
+  product_image_file_path: String!
+  product_name: String!
+  is_product_for_contract: [Contract]
+    @relation(name: "IS_PRODUCT_FOR_CONTRACT", direction: OUT)
+}
+
+type UserCategory {
+  _id: Long!
+  user_category_code: String!
+  user_category_description: String!
+  user_category_name: String!
+  is_usercategory_for_user: [User]
+    @relation(name: "IS_USERCATEGORY_FOR_USER", direction: OUT)
+}
+
+type User {
+  _id: Long!
+  date_of_birth: String!
+  first_name: String!
+  last_name: String!
+  national_id: String!
+  password: String!
+  user_name: String!
+  is_user_for_contractor: [Contractor]
+    @relation(name: "IS_USER_FOR_CONTRACTOR", direction: OUT)
+  is_user_for_household: [Household]
+    @relation(name: "IS_USER_FOR_HOUSEHOLD", direction: OUT)
+  is_user_for_organization: [Organization]
+    @relation(name: "IS_USER_FOR_ORGANIZATION", direction: OUT)
+  emails: [Email] @relation(name: "IS_EMAIL_FOR_USER", direction: IN)
+  usercategorys: [UserCategory]
+    @relation(name: "IS_USERCATEGORY_FOR_USER", direction: IN)
+  phones: [Phone] @relation(name: "IS_PHONE_FOR_USER", direction: IN)
+}
+
+type Ward {
+  _id: Long!
+  constituency_id: String!
+  ward_code: String!
+  ward_name: String!
+  is_ward_for_household: [Household]
+    @relation(name: "IS_WARD_FOR_HOUSEHOLD", direction: OUT)
+}
+
+type Area {
+  _id: Long!
+  area_code: String!
+  area_name: String!
+  income_level: String!
+  local_names: String!
+  is_area_for_contractor: [Contractor]
+    @relation(name: "IS_AREA_FOR_CONTRACTOR", direction: OUT)
+  is_area_for_household: [Household]
+    @relation(name: "IS_AREA_FOR_HOUSEHOLD", direction: OUT)
+}
